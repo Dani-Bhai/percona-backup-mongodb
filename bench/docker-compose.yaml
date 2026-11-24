@@ -1,0 +1,61 @@
+services:
+  mongod:
+    image: perconalab/percona-server-mongodb:8.0.4-multi
+    container_name: pbm-bench-mongod
+    network_mode: host
+    user: "${BENCH_UID:-1000}:${BENCH_GID:-1000}"
+    entrypoint: ["mongod"]
+    command:
+      - --dbpath=${BENCH_DIR}/data/db
+      - --replSet=rs0
+      - --bind_ip=127.0.0.1
+      - --port=27018
+      - --wiredTigerCacheSizeGB=0.5
+    volumes:
+      - ${BENCH_DIR}/data/db:${BENCH_DIR}/data/db
+      - ${BENCH_DIR}/scripts:/scripts:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27018", "--quiet", "--eval", "db.adminCommand({ping: 1}).ok"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    restart: "no"
+
+  minio:
+    image: pgsty/silo:RELEASE.2026-09-03T13-18-01Z
+    container_name: pbm-bench-minio
+    network_mode: host
+    user: "${BENCH_UID:-1000}:${BENCH_GID:-1000}"
+    command: server /data --address ":9000" --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - ${BENCH_DIR}/data/minio:/data
+    restart: "no"
+
+  createbucket:
+    image: pgsty/silo:RELEASE.2026-09-03T13-18-01Z
+    network_mode: host
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin; do sleep 1; done;
+      /usr/bin/mc mb --ignore-existing local/pbm-bench;
+      "
+
+  loadgen:
+    image: perconalab/percona-server-mongodb:8.0.4-multi
+    network_mode: host
+    user: "${BENCH_UID:-1000}:${BENCH_GID:-1000}"
+    entrypoint: ["mongosh"]
+    command: ["--port", "27018", "--quiet", "--file", "/scripts/load.js"]
+    environment:
+      HOME: /tmp
+      LOAD_SECONDS: "${LOAD_SECONDS:-900}"
+    volumes:
+      - ${BENCH_DIR}/scripts:/scripts:ro
+    restart: "no"

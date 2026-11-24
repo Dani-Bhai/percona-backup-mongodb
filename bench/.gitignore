@@ -1,0 +1,6 @@
+data/
+results/*.pid
+results/*.err
+results/pull-*.log
+results/status-*.txt
+results/agent-config-test.log

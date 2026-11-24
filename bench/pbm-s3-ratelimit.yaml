@@ -1,0 +1,14 @@
+storage:
+  type: s3
+  s3:
+    endpointUrl: http://127.0.0.1:9000
+    region: us-east-1
+    bucket: pbm-bench
+    prefix: bench
+    credentials:
+      access-key-id: minioadmin
+      secret-access-key: minioadmin
+
+backup:
+  # Physical backup upload bandwidth limit in MB/s (0 means no limit).
+  rateLimitMBs: 20

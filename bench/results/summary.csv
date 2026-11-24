@@ -1,0 +1,4 @@
+cap_mib_s,backup_mib,duration_s,upload_phase_s,upload_mib_s,wire_lo_mib_s,db_p95_median_ms,db_p99_median_ms,db_p99_max_ms,ops_per_s,dbpath_growth_mib,agent_cpu_pct,agent_rss_max_mib
+none,645.7,23.11,17.0,38.0,28.2,25.29,47.31,1451.14,157,200.2,26.9,186.4
+20,645.6,40.08,35.0,18.4,16.5,8.8,12.66,23.32,315,200.2,30.7,114.6
+10,636.4,75.08,69.0,9.2,8.7,13.76,18.53,486.32,281,200.3,16.2,120.1
