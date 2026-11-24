@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
 
 	"github.com/percona/percona-backup-mongodb/pbm/compress"
 	"github.com/percona/percona-backup-mongodb/pbm/ctrl"
@@ -31,6 +32,10 @@ const (
 	cursorCreateRetries               = 10
 	openConflictWithCheckpointErrCode = 50915
 	oplogRolledOverErrCode            = 50917
+
+	// rateLimitBurst is the maximum amount of bytes the bandwidth limiter
+	// allows to be sent at once.
+	rateLimitBurst = 1 << 20 // 1 MiB
 )
 
 type Meta struct {
@@ -524,6 +529,18 @@ func (b *Backup) getBackupBufSize() int {
 	return 0
 }
 
+// rateLimiter returns the bandwidth limiter for physical backup uploads, or
+// nil when no limit is configured. The limiter is shared by all files of the
+// backup so that the limit applies to the whole upload.
+func (b *Backup) rateLimiter() *rate.Limiter {
+	mbps := b.getRateLimitMBs()
+	if mbps <= 0 {
+		return nil
+	}
+
+	return rate.NewLimiter(rate.Limit(int64(mbps)*storage.MiB), rateLimitBurst)
+}
+
 func (b *Backup) uploadPhysical(
 	ctx context.Context,
 	bcp *ctrl.BackupCmd,
@@ -541,6 +558,8 @@ func (b *Backup) uploadPhysical(
 		l.Info("uploading data")
 	}
 
+	limiter := b.rateLimiter()
+
 	dataFiles, err := uploadFiles(
 		ctx,
 		data,
@@ -552,6 +571,7 @@ func (b *Backup) uploadPhysical(
 		bcp.CompressionLevel,
 		b.getBackupBufSize(),
 		numWorkers,
+		limiter,
 	)
 	if err != nil {
 		return errors.Wrap(err, "upload data files")
@@ -570,6 +590,7 @@ func (b *Backup) uploadPhysical(
 		bcp.CompressionLevel,
 		b.getBackupBufSize(),
 		numWorkers,
+		limiter,
 	)
 	if err != nil {
 		return errors.Wrap(err, "upload journal files")
@@ -748,6 +769,7 @@ func uploadFiles(
 	comprL *int,
 	bufSize int,
 	numWorkers int,
+	limiter *rate.Limiter,
 ) ([]File, error) {
 	if len(files) == 0 {
 		return nil, nil
@@ -800,6 +822,7 @@ func uploadFiles(
 				bufs.cp,
 				bufs.save,
 				bufs.fsSave,
+				limiter,
 			)
 			if err != nil {
 				return errors.Wrapf(err, "upload file `%s`", s.file.Name)
@@ -828,6 +851,7 @@ func writeFile(
 	cpBuf []byte,
 	saveBuf []byte,
 	fsSaveBuf []byte,
+	limiter *rate.Limiter,
 ) (*File, error) {
 	fstat, err := os.Stat(file.Name)
 	if err != nil {
@@ -851,7 +875,7 @@ func writeFile(
 		src = NewFileReader(*file, cpBuf)
 	}
 	_, err = storage.UploadWithOpts(ctx, src, stg, compression, compressLevel, dst,
-		sz, saveBuf, fsSaveBuf)
+		sz, saveBuf, fsSaveBuf, storage.WithRateLimit(limiter))
 	if err != nil {
 		return nil, errors.Wrap(err, "upload file")
 	}

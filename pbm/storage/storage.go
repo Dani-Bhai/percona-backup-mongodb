@@ -302,7 +302,13 @@ func UploadWithOpts(
 	sizeb int64,
 	saveBuf []byte,
 	fsSaveBuf []byte,
+	opts ...UploadOption,
 ) (int64, error) {
+	uo := &uploadOpts{}
+	for _, opt := range opts {
+		opt(uo)
+	}
+
 	r, pw := io.Pipe()
 
 	w, err := compress.Compress(pw, compression, compressLevel)
@@ -318,11 +324,16 @@ func UploadWithOpts(
 		pw.Close()
 	}()
 
+	var rdr io.Reader = r
+	if uo.rateLimiter != nil {
+		rdr = newRateLimitedReader(ctx, r, uo.rateLimiter)
+	}
+
 	saveDone := make(chan struct{})
 	go func() {
 		rwErr.write = dst.Save(
 			fname,
-			r,
+			rdr,
 			Size(sizeb),
 			SaveBuf(saveBuf),
 			FSSaveBuf(fsSaveBuf),

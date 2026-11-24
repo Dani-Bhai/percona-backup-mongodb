@@ -545,6 +545,10 @@ type BackupConf struct {
 
 	NumParallelCollections int `bson:"numParallelCollections" json:"numParallelCollections,omitempty" yaml:"numParallelCollections,omitempty"`
 	NumParallelFiles       int `bson:"numParallelFiles" json:"numParallelFiles,omitempty" yaml:"numParallelFiles,omitempty"`
+
+	// RateLimitMBs is the physical backup upload bandwidth limit in MB/s.
+	// Zero means no limit.
+	RateLimitMBs int `bson:"rateLimitMBs,omitempty" json:"rateLimitMBs,omitempty" yaml:"rateLimitMBs,omitempty"`
 }
 
 func (cfg *BackupConf) Clone() *BackupConf {
@@ -574,6 +578,15 @@ func (cfg *BackupConf) GetNumParallelFiles() int {
 		return 1
 	}
 	return cfg.NumParallelFiles
+}
+
+// GetRateLimitMBs returns the physical backup upload bandwidth limit in MB/s.
+// It returns 0 (no limit) when the limit is not set or is negative.
+func (cfg *BackupConf) GetRateLimitMBs() int {
+	if cfg == nil || cfg.RateLimitMBs < 1 {
+		return 0
+	}
+	return cfg.RateLimitMBs
 }
 
 //nolint:lll

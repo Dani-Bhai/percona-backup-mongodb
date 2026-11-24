@@ -312,6 +312,10 @@ func (app *pbmApp) buildBackupCmd() *cobra.Command {
 		&backupOptions.numParallelFiles, "num-parallel-files", 0,
 		"Number of files to upload in parallel (physical backup, filesystem storage only)",
 	)
+	backupCmd.Flags().Int32Var(
+		&backupOptions.rateLimitMBs, "rate-limit-mb", 0,
+		"Physical backup upload bandwidth limit in MB/s (0 means no limit)",
+	)
 	backupCmd.Flags().StringVar(
 		&backupOptions.ns, "ns", "", `Namespaces to backup (e.g. "db.*", "db.collection"). If not set, backup all ("*.*")`,
 	)

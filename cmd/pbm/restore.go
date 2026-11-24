@@ -126,11 +126,11 @@ func runRestore(
 	node string,
 	outf outFormat,
 ) (fmt.Stringer, error) {
-	numParallelColls, err := parseCLINumParallelOption(o.numParallelColls)
+	numParallelColls, err := parseCLINonNegativeOption(o.numParallelColls)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse --num-parallel-collections option")
 	}
-	numParallelFiles, err := parseCLINumParallelOption(o.numParallelFiles)
+	numParallelFiles, err := parseCLINonNegativeOption(o.numParallelFiles)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse --num-parallel-files option")
 	}

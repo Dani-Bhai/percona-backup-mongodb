@@ -42,6 +42,7 @@ type backupOpts struct {
 
 	numParallelColls int32
 	numParallelFiles int32
+	rateLimitMBs     int32
 }
 
 type backupOut struct {
@@ -99,13 +100,17 @@ func runBackup(
 	b *backupOpts,
 	outf outFormat,
 ) (fmt.Stringer, error) {
-	numParallelColls, err := parseCLINumParallelOption(b.numParallelColls)
+	numParallelColls, err := parseCLINonNegativeOption(b.numParallelColls)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse --num-parallel-collections option")
 	}
-	numParallelFiles, err := parseCLINumParallelOption(b.numParallelFiles)
+	numParallelFiles, err := parseCLINonNegativeOption(b.numParallelFiles)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse --num-parallel-files option")
+	}
+	rateLimitMBs, err := parseCLINonNegativeOption(b.rateLimitMBs)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse --rate-limit-mb option")
 	}
 	nss, err := parseCLINSOption(b.ns)
 	if err != nil {
@@ -159,6 +164,7 @@ func runBackup(
 			CompressionLevel: level,
 			NumParallelColls: numParallelColls,
 			NumParallelFiles: numParallelFiles,
+			RateLimitMBs:     rateLimitMBs,
 			Filelist:         b.externList,
 			Profile:          b.profile.Value(),
 		},
@@ -829,7 +835,7 @@ func (e incompatibleMongodVersionError) Unwrap() error {
 	return errIncompatible
 }
 
-func parseCLINumParallelOption(value int32) (*int32, error) {
+func parseCLINonNegativeOption(value int32) (*int32, error) {
 	if value < 0 {
 		return nil, errors.New("value cannot be negative")
 	}

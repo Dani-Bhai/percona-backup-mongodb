@@ -137,6 +137,7 @@ type BackupCmd struct {
 	CompressionLevel *int                     `bson:"level,omitempty"`
 	NumParallelColls *int32                   `bson:"numParallelColls,omitempty"`
 	NumParallelFiles *int32                   `bson:"numParallelFiles,omitempty"`
+	RateLimitMBs     *int32                   `bson:"rateLimitMBs,omitempty"`
 	Filelist         bool                     `bson:"filelist,omitempty"`
 	Profile          string                   `bson:"profile,omitempty"`
 	UsersAndRoles    bool                     `bson:"usersAndRoles,omitempty"`

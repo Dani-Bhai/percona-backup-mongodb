@@ -132,6 +132,9 @@ func (a *Agent) Backup(ctx context.Context, cmd *ctrl.BackupCmd, opid ctrl.OPID,
 	if cmd.NumParallelFiles != nil {
 		bcp.SetNumParallelFiles(int(*cmd.NumParallelFiles))
 	}
+	if cmd.RateLimitMBs != nil {
+		bcp.SetRateLimitMBs(int(*cmd.RateLimitMBs))
+	}
 
 	if isClusterLeader {
 		balancer := topo.BalancerModeOff

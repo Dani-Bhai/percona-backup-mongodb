@@ -34,6 +34,7 @@ type Backup struct {
 	timeouts            *config.BackupTimeouts
 	numParallelColls    int
 	numParallelFiles    int
+	rateLimitMBs        int
 	oplogSlicerInterval time.Duration
 }
 
@@ -91,6 +92,12 @@ func (b *Backup) SetNumParallelFiles(n int) {
 	b.numParallelFiles = n
 }
 
+// SetRateLimitMBs sets the physical backup upload bandwidth limit in MB/s.
+// Zero means no limit.
+func (b *Backup) SetRateLimitMBs(n int) {
+	b.rateLimitMBs = n
+}
+
 func (b *Backup) SetSlicerInterval(d time.Duration) {
 	b.oplogSlicerInterval = d
 }
@@ -114,6 +121,19 @@ func (b *Backup) getNumParallelFiles() int {
 		return b.numParallelFiles
 	}
 	return b.config.Backup.GetNumParallelFiles()
+}
+
+// getRateLimitMBs returns the physical backup upload bandwidth limit in MB/s.
+// The value set for the backup command takes precedence over the config one.
+// Zero means no limit.
+func (b *Backup) getRateLimitMBs() int {
+	if b.rateLimitMBs > 0 {
+		return b.rateLimitMBs
+	}
+	if b.config == nil {
+		return 0
+	}
+	return b.config.Backup.GetRateLimitMBs()
 }
 
 func (b *Backup) Init(

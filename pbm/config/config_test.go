@@ -1128,6 +1128,27 @@ func TestBackupConfGetNumParallelFiles(t *testing.T) {
 	}
 }
 
+func TestBackupConfGetRateLimitMBs(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *BackupConf
+		want int
+	}{
+		{name: "nil receiver", cfg: nil, want: 0},
+		{name: "unset (zero) means no limit", cfg: &BackupConf{}, want: 0},
+		{name: "negative means no limit", cfg: &BackupConf{RateLimitMBs: -5}, want: 0},
+		{name: "configured value", cfg: &BackupConf{RateLimitMBs: 100}, want: 100},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.GetRateLimitMBs(); got != tt.want {
+				t.Errorf("GetRateLimitMBs() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRestoreConfGetNumParallelFiles(t *testing.T) {
 	tests := []struct {
 		name string
